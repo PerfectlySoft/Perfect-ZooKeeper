@@ -3,10 +3,13 @@ import czookeeper
 
 public class ZooKeeper {
 
+  private let ZK_BUFSIZE = 10240
+
   public enum Exception: Error {
-  case CONNECTION_LOSS, DATA_INCONSISTENT, NO_NODE, NO_AUTH,
-    BAD_VERSION, NO_CHILDREN, NODE_EXISTS, INVALID_ACL, MARSHALLING,
-    AUTH_FAILED, SESSION_EXPIRED, INVALID_CALLBACK, TIMEOUT, INTERRUPTED, UNKNOWN
+  case CONNECTION_LOSS, DATA_INCONSISTENT, NO_NODE, NO_AUTH, BAD_VERSION,
+    NO_CHILDREN, NODE_EXISTS, INVALID_ACL, MARSHALLING, AUTH_FAILED,
+    SESSION_EXPIRED, INVALID_CALLBACK, TIMEOUT, INTERRUPTED, UNKNOWN,
+    FAULT(String)
   }//end Exception
 
   public enum ConnectionState {
@@ -81,5 +84,22 @@ public class ZooKeeper {
 
   deinit {
     if handle != nil { zookeeper_close(handle!) }
-  }
-}
+  }//end destruction
+
+  public func load(_ path: String) throws -> (String, Stat) {
+    guard let h = handle else {
+      throw Exception.CONNECTION_LOSS
+    }//end guard
+    var size = Int32(ZK_BUFSIZE)
+    var stat = Stat()
+    let buf = UnsafeMutablePointer<Int8>.allocate(capacity: ZK_BUFSIZE)
+    let r = ZOO_ERRORS(zoo_get(h, path, 0, buf, &size, &stat))
+    guard r == ZOK else {
+      buf.deallocate(capacity: ZK_BUFSIZE)
+      throw Exception.FAULT(Ret.explain(r))
+    }//end guard
+    let data = String(cString: buf)
+    buf.deallocate(capacity: ZK_BUFSIZE)
+    return (data, stat)
+  }//end read
+}//end class
