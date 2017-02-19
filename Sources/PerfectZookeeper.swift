@@ -1,19 +1,36 @@
 import LinuxBridge
-import PerfectThread
 import czookeeper
+
+public struct Manager {
+  public static var pool: [UnsafeMutableRawPointer: ZooKeeper] = [:]
+  public static func push(_ me: ZooKeeper) -> UnsafeMutableRawPointer {
+    var this = me
+    return withUnsafeMutablePointer(to: &this) { ptr -> UnsafeMutableRawPointer in
+      let p = unsafeBitCast(ptr, to: UnsafeMutableRawPointer.self)
+      Manager.pool[p] = me
+      return p
+    }
+  }
+}
 
 let DefaultWatchFunction: watcher_fn = { zooHandle, watcherType, state, watchPath, context in
   print("-------------------  watch now ----------------------")
+  print("handle \(zooHandle)\ntype \(watcherType)")
+  print("state \(state)\npath \(watchPath)\ncontext \(context)")
   guard let ptr = context else {
     print("something wrong, must log")
     return
   }//end guard
-  let pKeeper = unsafeBitCast(ptr, to: UnsafePointer<ZooKeeper>.self)
-  let zk = pKeeper.pointee
+  guard let zk = Manager.pool[ptr] else {
+    print("something wrong, must log 2")
+    return
+  }//end guard
+
   switch (watcherType) {
   case ZOO_SESSION_EVENT:
+    print("session marked")
     if(state == ZOO_CONNECTED_STATE) {
-  		zk.connected(true)
+      zk.connected(true)
       print("connected")
   	}else if(state == ZOO_EXPIRED_SESSION_STATE) {
       zk.connected(false)
@@ -136,11 +153,9 @@ public class ZooKeeper {
 
   public func connect(completion: @escaping (Bool) -> Void ) throws {
     connected = completion
-    var me = self
-    guard let _handle = withUnsafeMutablePointer(to: &me, { this -> OpaquePointer? in
-      return zookeeper_init(connectionString,
-            DefaultWatchFunction, _timeout, nil, this, 0)
-    }) else {
+    let ticket = Manager.push(self)
+    var id = clientid_t()
+    guard let _handle = zookeeper_init(connectionString, DefaultWatchFunction, _timeout, &id, ticket, 0) else {
       throw Exception.CONNECTION_LOSS
     }//END guard
     handle = _handle

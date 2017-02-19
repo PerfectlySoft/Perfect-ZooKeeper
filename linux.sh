@@ -1,7 +1,5 @@
 TGZ=/tmp/pzoo.tgz
-RPO=PerfectZookeeper
-cd ..
-tar czvf $TGZ $RPO
-cd $RPO
+RPO=pzk
+tar czvf $TGZ Sources Tests Package.swift
 scp $TGZ nut:/tmp
-ssh nut "cd /tmp;rm -rf $RPO;tar xzvf $TGZ;cd $RPO;swift build;swift test"
+ssh nut "cd /tmp;rm -rf $RPO;mkdir $RPO; cd $RPO; tar xzvf $TGZ;swift build;swift test"
