@@ -1,6 +1,6 @@
 import XCTest
-@testable import PerfectZookeeperTests
+@testable import PerfectZooKeeperTests
 
 XCTMain([
-     testCase(PerfectZookeeperTests.allTests),
+     testCase(PerfectZooKeeperTests.allTests),
 ])

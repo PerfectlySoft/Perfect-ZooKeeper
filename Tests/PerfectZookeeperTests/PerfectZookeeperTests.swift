@@ -1,10 +1,8 @@
 import XCTest
-@testable import PerfectZookeeper
-import LinuxBridge
-import czookeeper
+@testable import PerfectZooKeeper
 import Foundation
 
-class PerfectZookeeperTests: XCTestCase {
+class PerfectZooKeeperTests: XCTestCase {
     func testExample() {
       let x = self.expectation(description: "connection")
       let z = ZooKeeper()
@@ -26,7 +24,7 @@ class PerfectZookeeperTests: XCTestCase {
     }
 
 
-    static var allTests : [(String, (PerfectZookeeperTests) -> () throws -> Void)] {
+    static var allTests : [(String, (PerfectZooKeeperTests) -> () throws -> Void)] {
         return [
             ("testExample", testExample),
         ]
