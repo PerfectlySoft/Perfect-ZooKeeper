@@ -9,7 +9,7 @@ class PerfectZooKeeperTests: XCTestCase {
       print("???????????  keeper start   ??????????????")
       do {
         try z.connect { connection in
-          XCTAssertTrue(connection)
+          XCTAssertEqual(connection, ZooKeeper.ConnectionState.CONNECTED)
           print("================ CONNECTED =============")
           x.fulfill()
         }//end zooKeeper
