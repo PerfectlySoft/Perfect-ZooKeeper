@@ -1,5 +1,7 @@
 import XCTest
 @testable import PerfectZookeeper
+import LinuxBridge
+import czookeeper
 import Foundation
 
 class PerfectZookeeperTests: XCTestCase {
@@ -16,7 +18,6 @@ class PerfectZookeeperTests: XCTestCase {
       }catch(let err) {
         XCTFail("Fault: \(err)")
       }
-      sleep(30)
       self.waitForExpectations(timeout: 30) { err in
         if err != nil {
           XCTFail("time out \(err)")
