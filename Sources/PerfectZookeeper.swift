@@ -3,7 +3,7 @@ import czookeeper
 
 public class ZooKeeper {
 
-  private let ZK_BUFSIZE = 10240
+  private let ZK_BUFSIZE = 16384
 
   public enum Exception: Error {
   case CONNECTION_LOSS, DATA_INCONSISTENT, NO_NODE, NO_AUTH, BAD_VERSION,

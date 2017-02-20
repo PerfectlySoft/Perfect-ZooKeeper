@@ -21,6 +21,13 @@ class PerfectZooKeeperTests: XCTestCase {
           XCTFail("time out \(err)")
         }//end if
       }//end self
+      do {
+        let (data, stat) = try z.load("/zookeeper/quota/perfect")
+        print(data)
+        print(stat)
+      }catch (let err){
+        XCTFail("Load Fault: \(err)")
+      }
     }
 
 
