@@ -60,6 +60,16 @@ public class ZooKeeper {
     return (data, stat)
   }//end read
 
+  public func save(_ path: String, data: String, version: Int = -1) throws {
+    guard let h = handle else {
+      throw Exception.CONNECTION_LOSS
+    }//end guard
+    let r = ZOO_ERRORS(zoo_set(h, path, data, Int32(strlen(data)), Int32(version)))
+    guard r == ZOK else {
+      throw Exception.FAULT(String(zkcode: r))
+    }//end guard
+  }
+
   public func exists(_ path: String) throws -> Bool {
     guard let h = handle else {
       throw Exception.CONNECTION_LOSS
@@ -72,8 +82,12 @@ public class ZooKeeper {
     guard let h = handle else {
       throw Exception.CONNECTION_LOSS
     }//end guard
-    var sv = String_vector()
     var array = [String]()
+    let acl = ZOO_OPEN_ACL_UNSAFE
+    print(acl.count )
+    let a = acl.data.advanced(by: 0).pointee
+    print(a)
+    var sv = String_vector()
     let r = ZOO_ERRORS(zoo_get_children(h, path, 0, &sv))
     guard r == ZOK else {
       throw Exception.FAULT(String(zkcode: r))
@@ -92,6 +106,8 @@ public class ZooKeeper {
     }//next i
     return array
   }//end public
+
+
 /*
   internal func _createNode(flag: Int32, path: String, value: String, recursive: Bool) throws -> String {
     guard flag != ZOO_SEQUENCE else {

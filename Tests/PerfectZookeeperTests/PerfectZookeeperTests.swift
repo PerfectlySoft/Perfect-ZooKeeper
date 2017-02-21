@@ -23,6 +23,8 @@ class PerfectZooKeeperTests: XCTestCase {
       }//end self
       do {
         let path = "/zookeeper/quota/perfect"
+        let now = time(nil)
+        try z.save(path, data: "hello, configuration \(now)")
         let (data, stat) = try z.load(path)
         print(data)
         print(stat)
@@ -32,6 +34,7 @@ class PerfectZooKeeperTests: XCTestCase {
         let children = try z.children(parent)
         XCTAssertGreaterThan(children.count, 0)
         print(children)
+
       }catch (let err){
         XCTFail("Load Fault: \(err)")
       }
