@@ -3,13 +3,13 @@ import czookeeper
 
 public class ZooKeeper {
 
-  private let ZK_BUFSIZE = 16384
+  private let ZK_BUFSIZE = 10240
 
   public enum Exception: Error {
   case CONNECTION_LOSS, DATA_INCONSISTENT, NO_NODE, NO_AUTH, BAD_VERSION,
     NO_CHILDREN, NODE_EXISTS, INVALID_ACL, MARSHALLING, AUTH_FAILED,
     SESSION_EXPIRED, INVALID_CALLBACK, TIMEOUT, INTERRUPTED, UNKNOWN,
-    FAULT(String)
+    INVALID_FLAG, FAULT(String)
   }//end Exception
 
   public enum ConnectionState {
@@ -59,7 +59,7 @@ public class ZooKeeper {
   internal var connectionString = ""
   internal var _timeout:Int32 = 0
 
-  internal var connected: (ConnectionState)->Void = { _ in }
+  public var onConnection: (ConnectionState)->Void = { _ in }
   public func touch(_ forData: Bool) { }
 
   init(host: String = "localhost", port: Int = 2181, timeout: Int32 = 10000) {
@@ -67,13 +67,9 @@ public class ZooKeeper {
     _timeout = timeout
   }//init
 
-  public func setConnection(_ state: ConnectionState) {
-    connected(state)
-  }//end func
-
   public func connect(completion: @escaping (ConnectionState) -> Void ) throws {
     if handle != nil { zookeeper_close(handle!) }
-    connected = completion
+    onConnection = completion
     let ticket = Manager.push(self)
     var id = clientid_t()
     guard let _handle = zookeeper_init(connectionString, globalDefaultWatcher, _timeout, &id, ticket, 0) else {
@@ -102,4 +98,33 @@ public class ZooKeeper {
     buf.deallocate(capacity: ZK_BUFSIZE)
     return (data, stat)
   }//end read
+
+  public func exists(path: String) throws -> Bool {
+    guard let h = handle else {
+      throw Exception.CONNECTION_LOSS
+    }//end guard
+    let r = ZOO_ERRORS(zoo_exists(h, path, 0, nil))
+    return r == ZOK
+  }//end func
+
+  internal func parent(_ path: String = "/") -> String {
+    var nodes = path.characters.split(separator: "/").map { String($0) }
+    nodes.remove(at: nodes.count - 1)
+    if nodes.count < 1 {
+      return "/"
+    } else {
+      return nodes.reduce("") { $0 + "/" + $1 }
+    }//end if
+  }//end func
+/*
+  internal func _createNode(flag: Int32, path: String, value: String, recursive: Bool) throws -> String {
+    guard flag != ZOO_SEQUENCE else {
+      throw Exception.INVALID_FLAG
+    }//end guard
+    var size = Int32(ZK_BUFSIZE)
+    let buf = UnsafeMutablePointer<Int8>.allocate(capacity: ZK_BUFSIZE)
+    var acl = ZOO_OPEN_ACL_UNSAFE
+    let r = ZOO_ERRORS(zoo_create(h, path, value, value.utf8.count, &ac, flag, buf, size))
+  }
+  */
 }//end class
