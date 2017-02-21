@@ -99,7 +99,7 @@ public class ZooKeeper {
     return (data, stat)
   }//end read
 
-  public func exists(path: String) throws -> Bool {
+  public func exists(_ path: String) throws -> Bool {
     guard let h = handle else {
       throw Exception.CONNECTION_LOSS
     }//end guard
@@ -107,15 +107,31 @@ public class ZooKeeper {
     return r == ZOK
   }//end func
 
-  internal func parent(_ path: String = "/") -> String {
-    var nodes = path.characters.split(separator: "/").map { String($0) }
-    nodes.remove(at: nodes.count - 1)
-    if nodes.count < 1 {
-      return "/"
-    } else {
-      return nodes.reduce("") { $0 + "/" + $1 }
+  public func children(_ path: String) throws -> [String] {
+    guard let h = handle else {
+      throw Exception.CONNECTION_LOSS
+    }//end guard
+    var sv = String_vector()
+    var array = [String]()
+    let r = ZOO_ERRORS(zoo_get_children(h, path, 0, &sv))
+    guard r == ZOK else {
+      throw Exception.FAULT(Ret.explain(r))
+    }//end guard
+    if sv.count < 1 {
+      return array
     }//end if
-  }//end func
+    for i in 0 ... Int(sv.count - 1) {
+      guard let cstr = sv.data.advanced(by: i).pointee else {
+        continue
+      }//end cstr
+      guard let str = String(validatingUTF8: cstr) else {
+        continue
+      }//str
+      array.append(str)
+    }//next i
+    return array
+  }//end public
+
 /*
   internal func _createNode(flag: Int32, path: String, value: String, recursive: Bool) throws -> String {
     guard flag != ZOO_SEQUENCE else {

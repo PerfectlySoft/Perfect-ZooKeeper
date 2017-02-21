@@ -22,9 +22,16 @@ class PerfectZooKeeperTests: XCTestCase {
         }//end if
       }//end self
       do {
-        let (data, stat) = try z.load("/zookeeper/quota/perfect")
+        let path = "/zookeeper/quota/perfect"
+        let (data, stat) = try z.load(path)
         print(data)
         print(stat)
+        let parent = path.parentPath()
+        let test = try z.exists(parent)
+        XCTAssertTrue(test)
+        let children = try z.children(parent)
+        XCTAssertGreaterThan(children.count, 0)
+        print(children)
       }catch (let err){
         XCTFail("Load Fault: \(err)")
       }
