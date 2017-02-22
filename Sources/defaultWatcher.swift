@@ -14,13 +14,13 @@ let globalDefaultWatcher: watcher_fn = { zooHandle, watcherType, state, watchPat
   switch (watcherType) {
   case ZOO_SESSION_EVENT:
     if(state == ZOO_CONNECTED_STATE) {
-      zk.onConnection(.CONNECTED)
+      zk.onConnect(.CONNECTED)
       print("connected")
   	}else if(state == ZOO_EXPIRED_SESSION_STATE) {
-      zk.onConnection(.EXPIRED)
+      zk.onConnect(.EXPIRED)
       print("session expired")
   	}else{
-      zk.onConnection(.DISCONNECTED)
+      zk.onConnect(.DISCONNECTED)
       print("connection loss")
   	}//end if
   case ZOO_CREATED_EVENT:

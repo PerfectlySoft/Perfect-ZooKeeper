@@ -24,11 +24,16 @@ import Darwin
 #endif
 import czookeeper
 
+/// status call back for zoo_set asyn version
 public typealias StatusCallback = (ZooKeeper.Exception, Stat?) -> Void
+
+/// data call back for zoo_get async version
 public typealias DataCallback =  (ZooKeeper.Exception, String, Stat?) -> Void
 
+/// ZooKeeper: a light weight swift class wrapper for zoo keeper.
 public class ZooKeeper {
 
+  /// according to the zookeeper doc, buffers should be restricted in 10k
   private let ZK_BUFSIZE = 10240
 
   /// directly copy from zookeeper.h
@@ -73,30 +78,54 @@ public class ZooKeeper {
     OVERFLOW = 1
   }//end enum
 
+  /// connection state to the ZooKeeper server
   public enum ConnectionState {
   case CONNECTED, DISCONNECTED, EXPIRED
   }//end ConnectionState
 
+  /// zookeeper handle, could be nil if no connection available
   internal var handle: OpaquePointer? = nil
-  internal var connectionString = ""
+
+  /// connection time out value, in milliseconds
   internal var _timeout:Int32 = 0
 
-  public var onConnection: (ConnectionState)->Void = { _ in }
+  /// client id
+  internal var id = clientid_t()
+
+  /// connection event callback, default is `do nothing`
+  public var onConnect: (ConnectionState)->Void = { _ in }
+
+  ///
   public func touch(_ forData: Bool) { }
 
-  init(host: String = "localhost", port: Int = 2181, timeout: Int32 = 10000) {
-    connectionString = "\(host):\(port)"
+  /// constructor
+  /// - parameters:
+  ///   - timeout: Int32, timeout in connection attampt, in milliseconds
+  init(timeout: Int32 = 10000) {
     _timeout = timeout
   }//init
 
-  public func connect(completion: @escaping (ConnectionState) -> Void ) throws {
+  /// connect to hosts
+  /// - parameters:
+  ///   - to: hosts, could be mutiple servers such as "server1:2181;server2:2181;server3:2181"
+  ///   - completion: connection callback.
+  public func connect(to: String = "localhost:2181", completion: @escaping (ConnectionState) -> Void ) throws {
+
+    // close previous connection
     if handle != nil { zookeeper_close(handle!) }
-    onConnection = completion
+
+    // set callback
+    onConnect = completion
+
+    // *BUG* zookeeper has some problems with function pointers, so using a inner pointer manager to deal with callbacks
     let ticket = Manager.push(mutable: self)
-    var id = clientid_t()
-    guard let _handle = zookeeper_init(connectionString, globalDefaultWatcher, _timeout, &id, ticket, 0) else {
+
+    // connect to the hosts with default watcher
+    guard let _handle = zookeeper_init(to, globalDefaultWatcher, _timeout, &id, ticket, 0) else {
       throw Exception.ZCONNECTIONLOSS
     }//END guard
+
+    // save the handle for future
     handle = _handle
   }//nect connect
 
