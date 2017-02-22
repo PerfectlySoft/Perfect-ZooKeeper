@@ -1,5 +1,6 @@
 import czookeeper
 
+/// for connection only, check ZooKeeper document for these parameters.
 let globalDefaultWatcher: watcher_fn = { zooHandle, watcherType, state, watchPath, context in
   print("-------------------  watch now ----------------------")
   print("handle \(zooHandle)\ntype \(watcherType)")
@@ -8,7 +9,7 @@ let globalDefaultWatcher: watcher_fn = { zooHandle, watcherType, state, watchPat
     print("something wrong, must log")
     return
   }//end guard
-  let zk = Manager.mutables[ptr] as! ZooKeeper 
+  let zk = Manager.mutables[ptr] as! ZooKeeper
 
   switch (watcherType) {
   case ZOO_SESSION_EVENT:
