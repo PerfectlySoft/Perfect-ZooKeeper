@@ -1,10 +1,19 @@
 public struct Manager {
-  public static var pool: [UnsafeMutableRawPointer: ZooKeeper] = [:]
-  public static func push(_ me: ZooKeeper) -> UnsafeMutableRawPointer {
-    var this = me
+  public static var mutables: [UnsafeMutableRawPointer: Any] = [:]
+  public static func push(mutable: Any) -> UnsafeMutableRawPointer {
+    var this = mutable
     return withUnsafeMutablePointer(to: &this) { ptr -> UnsafeMutableRawPointer in
       let p = unsafeBitCast(ptr, to: UnsafeMutableRawPointer.self)
-      Manager.pool[p] = me
+      Manager.mutables[p] = mutable
+      return p
+    }//end pointer
+  }//end push
+  public static var immutables: [UnsafeRawPointer: Any] = [:]
+  public static func push(immutable: Any) -> UnsafeRawPointer {
+    var this = immutable
+    return withUnsafePointer(to: &this) { ptr -> UnsafeRawPointer in
+      let p = unsafeBitCast(ptr, to: UnsafeRawPointer.self)
+      Manager.immutables[p] = immutable
       return p
     }//end pointer
   }//end push

@@ -1,4 +1,3 @@
-import LinuxBridge
 import czookeeper
 
 let globalDefaultWatcher: watcher_fn = { zooHandle, watcherType, state, watchPath, context in
@@ -9,10 +8,7 @@ let globalDefaultWatcher: watcher_fn = { zooHandle, watcherType, state, watchPat
     print("something wrong, must log")
     return
   }//end guard
-  guard let zk = Manager.pool[ptr] else {
-    print("Unresolved keeper address.")
-    return
-  }//end guard
+  let zk = Manager.mutables[ptr] as! ZooKeeper 
 
   switch (watcherType) {
   case ZOO_SESSION_EVENT:
