@@ -119,10 +119,15 @@ class PerfectZooKeeperTests: XCTestCase {
       }
     }
 
+    func testGlobal() {
+      ZooKeeper.debug()
+      ZooKeeper.log()
+    }
 
     static var allTests : [(String, (PerfectZooKeeperTests) -> () throws -> Void)] {
         return [
             ("testExample", testExample),
+            ("testGlobal", testGlobal)
         ]
     }
 }

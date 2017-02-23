@@ -39,10 +39,10 @@ let globalDefaultWatcher: watcher_fn = { zooHandle, watcherType, state, watchPat
     print("node deleted: \(str)")
   case ZOO_CHANGED_EVENT:
     print("touch data")
-    zk.touch(true)
+    zk.onChange(.DATA)
   case ZOO_CHILD_EVENT:
     print("touch children")
-    zk.touch(false)
+    zk.onChange(.CHILDREN)
   default:
     print("unexpected event???")
   }//end swtich

@@ -103,8 +103,31 @@ public class ZooKeeper {
   /// connection event callback, default is `do nothing`
   public var onConnect: (ConnectionState)->Void = { _ in }
 
-  ///
-  public func touch(_ forData: Bool) { }
+  public enum EventType {
+  case DATA, CHILDREN, BOTH
+  }//end WatchType
+
+  /// change event callback, default is `do nothing`
+  public var onChange: (EventType)->Void = { _ in  }
+
+  /// log level
+  public enum LogLevel: UInt32 {
+  case ERROR = 1, WARN = 2, INFO = 3, DEBUG = 4
+  }//end enum
+
+  /// set debug level
+  /// - parameters:
+  ///   - level: LogLevel, i.e., ERROR, WARN, INFO or DEBUG, by default
+  public static func debug(_ level: LogLevel = .DEBUG) {
+    zoo_set_debug_level( ZooLogLevel(rawValue: level.rawValue))
+  }//end func
+
+  /// set log stream
+  /// - parameters:
+  ///   - stream: FILE *, the stream to write
+  public static func log(_ to: UnsafeMutablePointer<FILE> = stderr) {
+    zoo_set_log_stream(to)
+  }//end func
 
   /// constructor
   /// - parameters:
@@ -419,4 +442,8 @@ public class ZooKeeper {
       throw Exception(rawValue: r)!
     }//end guard
   }//end remove
+
+  public func watch(_ path: String, eventType: EventType = .BOTH, onChange: @escaping (Exception, EventType)) {
+
+  }
 }//end class
