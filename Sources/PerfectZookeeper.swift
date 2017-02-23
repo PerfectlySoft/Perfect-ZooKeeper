@@ -133,31 +133,58 @@ public class ZooKeeper {
     if handle != nil { zookeeper_close(handle!) }
   }//end destruction
 
+  /// load data from a node, synchronously
+  /// - parameters:
+  ///   - path: String, the absolute full path of the node to access
+  /// - returns:
+  ///   (value: String, stat: Stat), a tuple of data value and its directory status.
   @discardableResult
   public func load(_ path: String) throws -> (String, Stat) {
+
+    // check the handle first
     guard let h = handle else {
       throw Exception.ZCONNECTIONLOSS
     }//end guard
+
+    // prepare a buffer to receive the data
     var size = Int32(ZK_BUFSIZE)
+
+    // status variable
     var stat = Stat()
     let buf = UnsafeMutablePointer<Int8>.allocate(capacity: ZK_BUFSIZE)
     let r = zoo_get(h, path, 0, buf, &size, &stat)
+
+    // validate the result
     guard r == Exception.ZOK.rawValue else {
       buf.deallocate(capacity: ZK_BUFSIZE)
       throw Exception(rawValue: r)!
     }//end guard
+
+    // save the pointer into string
     let data = String(cString: buf)
     buf.deallocate(capacity: ZK_BUFSIZE)
     return (data, stat)
   }//end read
 
+  /// load data from a node, asynchronously
+  /// - parameters:
+  ///   - path: String, the absolute full path of the node to access
+  ///   - completion: DataCallback, callback once data ready
   public func load(_ path: String, completion: @escaping DataCallback ) {
+
+    // validate the handle first
     guard let h = handle else {
       completion (Exception.ZCONNECTIONLOSS, "", Stat())
       return
     }//end guard
+
+    // deposit the function pointer to the pointer mananger
     let key = Manager.push(immutable: completion)
+
+    // asynchronously read data from server
     zoo_aget(h, path, 0, { rc, value, len, pStat, data  in
+
+      // get the callback function pointer
       guard let ptr = data else {
         return
       }//end guard
@@ -167,14 +194,20 @@ public class ZooKeeper {
       if let ptr = pStat {
         st = ptr.pointee
       }//end if
+
+      // if data is ready, read it out
       if len > 0 && value != nil {
         let sz = Int(len)
         let val = UnsafeMutablePointer<CChar>.allocate(capacity: sz + 1)
+
+        // fix the null-terminated c string
         memset(val, 0, sz + 1)
         memcpy(val, value!, sz)
         let str = String(cString: val)
         val.deallocate(capacity: sz)
         print(str)
+
+        // call the completion function
         callback(err, str, st)
       } else {
         callback(err, "", st)
@@ -182,6 +215,13 @@ public class ZooKeeper {
     }, key)
   }//end load
 
+  /// save data to path, synchronously
+  /// - parameters:
+  ///   - path: String, the absolute full path of the node to access
+  ///   - data: String, the data to save
+  ///   - version: version of data, default is -1 which indicates ignoring the version info
+  /// - returns:
+  ///   stat, the node status after saving
   @discardableResult
   public func save(_ path: String, data: String, version: Int = -1) throws -> Stat {
     guard let h = handle else {
@@ -195,13 +235,27 @@ public class ZooKeeper {
     return stat
   }//end save
 
+  /// save data to path, asynchronously
+  /// - parameters:
+  ///   - path: String, the absolute full path of the node to access
+  ///   - data: String, the data to save
+  ///   - version: version of data, default is -1 which indicates ignoring the version info
+  ///   - completion: StatusCallback once done.
   public func save(_ path: String, data: String, version: Int = -1, completion: @escaping StatusCallback ) {
+
+    // validate the connection
     guard let h = handle else {
       completion (Exception.ZCONNECTIONLOSS, Stat())
       return
     }//end guard
+
+    // save the callback function pointer to pool
     let key = Manager.push(immutable: completion)
+
+    // deposit data into node
     zoo_aset(h, path, data, Int32(strlen(data)), Int32(version), { rc, pStat, data in
+
+      // load the callback function pointer from the pool
       guard let ptr = data else {
         return
       }//end guard
@@ -215,8 +269,15 @@ public class ZooKeeper {
     }, key)
   }//end save
 
+  /// check the node existence
+  /// - parameters:
+  ///   - path: String, the absolute full path of the node to access
+  /// - returns:
+  ///   stat, the node status after saving
   @discardableResult
   public func exists(_ path: String) throws -> Stat {
+
+    // validate the connection
     guard let h = handle else {
       throw Exception.ZCONNECTIONLOSS
     }//end guard
@@ -228,13 +289,26 @@ public class ZooKeeper {
     return stat
   }//end func
 
+  /// list all children under a node
+  /// - parameters:
+  ///   - path: String, the absolute full path of the node to access
+  /// - returns:
+  ///   a string array with each element as a child
   @discardableResult
   public func children(_ path: String) throws -> [String] {
+
+    // validate the connection
     guard let h = handle else {
       throw Exception.ZCONNECTIONLOSS
     }//end guard
+
+    // prepare an empty string array
     var array = [String]()
+
+    // prepare the pointer array to store the children
     var sv = String_vector()
+
+    // preform calling
     let r = zoo_get_children(h, path, 0, &sv)
     guard r == Exception.ZOK.rawValue else {
       throw Exception(rawValue: r)!
@@ -242,6 +316,8 @@ public class ZooKeeper {
     if sv.count < 1 {
       return array
     }//end if
+
+    // save the pointer into result set
     for i in 0 ... Int(sv.count - 1) {
       guard let cstr = sv.data.advanced(by: i).pointee else {
         continue
