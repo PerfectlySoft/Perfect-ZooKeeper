@@ -17,6 +17,9 @@
 //===----------------------------------------------------------------------===//
 //
 
+/// pointer manager for zooKeeper
+/// directly using raw pointer in zookeeper's callbacks may cause segment fault
+/// so this is a save and express way to replace the directly pointer casting.
 public struct Manager {
   public static var mutables: [UnsafeMutableRawPointer: Any] = [:]
   public static func push(mutable: Any) -> UnsafeMutableRawPointer {

@@ -83,6 +83,14 @@ public class ZooKeeper {
   case CONNECTED, DISCONNECTED, EXPIRED
   }//end ConnectionState
 
+  public enum NodeType {
+  case PERSISTENT, EPHEMERAL, SEQUENTIAL, LEADERSHIP
+  }//end enum
+
+  public enum ACLTemplate {
+  case OPEN, READ, CREATOR
+  }//end enum
+
   /// zookeeper handle, could be nil if no connection available
   internal var handle: OpaquePointer? = nil
 
@@ -109,6 +117,8 @@ public class ZooKeeper {
   /// - parameters:
   ///   - to: hosts, could be mutiple servers such as "server1:2181;server2:2181;server3:2181"
   ///   - completion: connection callback.
+  /// - throws:
+  ///   Exception
   public func connect(to: String = "localhost:2181", completion: @escaping (ConnectionState) -> Void ) throws {
 
     // close previous connection
@@ -138,6 +148,8 @@ public class ZooKeeper {
   ///   - path: String, the absolute full path of the node to access
   /// - returns:
   ///   (value: String, stat: Stat), a tuple of data value and its directory status.
+  /// - throws:
+  ///   Exception
   @discardableResult
   public func load(_ path: String) throws -> (String, Stat) {
 
@@ -222,6 +234,8 @@ public class ZooKeeper {
   ///   - version: version of data, default is -1 which indicates ignoring the version info
   /// - returns:
   ///   stat, the node status after saving
+  /// - throws:
+  ///   Exception
   @discardableResult
   public func save(_ path: String, data: String, version: Int = -1) throws -> Stat {
     guard let h = handle else {
@@ -274,6 +288,8 @@ public class ZooKeeper {
   ///   - path: String, the absolute full path of the node to access
   /// - returns:
   ///   stat, the node status after saving
+  /// - throws:
+  ///   Exception
   @discardableResult
   public func exists(_ path: String) throws -> Stat {
 
@@ -294,6 +310,8 @@ public class ZooKeeper {
   ///   - path: String, the absolute full path of the node to access
   /// - returns:
   ///   a string array with each element as a child
+  /// - throws:
+  ///   Exception
   @discardableResult
   public func children(_ path: String) throws -> [String] {
 
@@ -330,23 +348,75 @@ public class ZooKeeper {
     return array
   }//end public
 
+  /// make a node, synchronously
+  /// - parameters:
+  ///   - path: String, the absolute full path of the node to make
+  ///   - value: String, the value to store into node
+  ///   - type: NodeType, i.e., persistent, ephemeral, sequential, or leadership, which means ephemeral + sequential. Default is .PERSISTENT
+  ///   - acl: ACLTemplate, i.e., open, read or creator. Default is .OPEN
+  /// - returns:
+  ///   a string array with each element as a child
+  /// - throws:
+  ///   Exception
+  @discardableResult
+  public func make(_ path: String, value: String = "", type: NodeType = .PERSISTENT, acl: ACLTemplate = .OPEN) throws -> String {
 
-/*
-  internal func _createNode(flag: Int32, path: String, value: String, recursive: Bool) throws -> String {
-    guard flag != ZOO_SEQUENCE else {
-      throw Exception.INVALID_FLAG
+    // validate the connection
+    guard let h = handle else {
+      throw Exception.ZCONNECTIONLOSS
     }//end guard
-    var size = Int32(ZK_BUFSIZE)
-    let buf = UnsafeMutablePointer<Int8>.allocate(capacity: ZK_BUFSIZE)
-    var acl = ZOO_OPEN_ACL_UNSAFE
-    let r = ZOO_ERRORS(zoo_create(h, path, value, value.utf8.count, &ac, flag, buf, size))
-    guard r == ZOK else {
-      throw Exception.FAULT(String(zkcode: r))
+
+    var flags: Int32 = 0
+    switch type {
+    case .EPHEMERAL : flags = ZOO_EPHEMERAL
+    case .SEQUENTIAL: flags = ZOO_SEQUENCE
+    case .LEADERSHIP: flags = ZOO_EPHEMERAL | ZOO_SEQUENCE
+    default:
+        flags = 0
+    }//end switch
+
+    var aclTemp : ACL_vector
+    switch(acl) {
+    case .READ: aclTemp = ZOO_READ_ACL_UNSAFE
+    case .OPEN: aclTemp = ZOO_OPEN_ACL_UNSAFE
+    default: aclTemp = ZOO_CREATOR_ALL_ACL
+    }//end switch
+
+    let sz = Int(strlen(path) * 2)
+    let buf = UnsafeMutablePointer<CChar>.allocate(capacity: sz)
+    memset(buf, 0, sz)
+
+    let r = zoo_create(h, path, value, Int32(strlen(value)), &aclTemp, flags, buf, Int32(sz))
+
+    guard r == Exception.ZOK.rawValue else {
+      buf.deallocate(capacity: sz)
+      throw Exception(rawValue: r)!
     }//end guard
-    let parent = path.parentPath()
-    if parent == "/" {
-      return
-    }
-  }
-  */
+
+    let retPath = String(cString: buf)
+    buf.deallocate(capacity: sz)
+    return retPath
+  }//end make
+
+  /// remove a node, synchronously
+  /// - parameters:
+  ///   - path: String, the absolute full path of the node to make
+  ///   - version: Int32, the expected version of the node. The function will fail if the actual version of the node does not match the expected version. defaut -1 is used the version check will not take place.
+  /// - returns:
+  ///   a string array with each element as a child
+  /// - throws:
+  ///   Exception
+  public func remove(_ path: String, version: Int32 = -1) throws {
+
+    // validate the connection
+    guard let h = handle else {
+      throw Exception.ZCONNECTIONLOSS
+    }//end guard
+
+    let r = zoo_delete(h, path, version)
+
+    guard r == Exception.ZOK.rawValue else {
+      throw Exception(rawValue: r)!
+    }//end guard
+  }//end remove
 }//end class

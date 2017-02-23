@@ -95,6 +95,28 @@ class PerfectZooKeeperTests: XCTestCase {
           XCTFail("reading time out \(err)")
         }//end if
       }//end self
+
+      print("$ $ $ $ $     directories     $ $ $ $ $")
+      do {
+        let pp = "\(path)/persistent"
+        let pe = "\(path)/ephemeral"
+        let ps = "\(path)/sequential"
+        let pl = "\(path)/leadership"
+        let rpp = try z.make(pp, value: "blah blah blah")
+        print(rpp)
+        XCTAssertEqual(rpp, pp)
+        try z.remove(pp)
+        let _ = try z.make(pe, value: "will fade away")
+        try z.remove(pe)
+        let spp = try z.make(ps, value: "no need")
+        print(spp)
+        try z.remove(ps)
+        let lpp = try z.make(pl)
+        print(lpp)
+        try z.remove(pl)
+      }catch(let err) {
+        XCTFail("make / remove fault: \(err)")
+      }
     }
 
 
