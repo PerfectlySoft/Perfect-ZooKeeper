@@ -141,7 +141,18 @@ class PerfectZooKeeperTests: XCTestCase {
         try z.connect { connection in
           XCTAssertEqual(connection, ZooKeeper.ConnectionState.CONNECTED)
           x.fulfill()
-        }//end zooKeeper
+          print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>  PREPARE WRITING >>>>>>>>>>>>>>>>>>>>>>>>>>> ")
+          for i in 0 ... 5 {
+            do {
+              sleep(1)
+              let now = time(nil)
+              let _ = try z.save(self.path, data: "write to configuration \(now)")
+              print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>  \(i)  written >>>>>>>>>>>>>>>>>>>>>>>>>>> ")
+            }catch (let saveErr) {
+              XCTFail("write fault: \(saveErr)")
+            }
+          }//next
+        }//end connect
       }catch(let err) {
         XCTFail("Fault: \(err)")
       }
@@ -150,47 +161,31 @@ class PerfectZooKeeperTests: XCTestCase {
           XCTFail("time out \(err)")
         }//end if
       }//end self
-      for _ in 0 ... 5 {
-        do {
-          sleep(1)
-          let now = time(nil)
-          let _ = try z.save(path, data: "write to configuration \(now)")
-        }catch (let err) {
-          XCTFail("write fault: \(err)")
-        }
-      }
     }
 
     func testWatch() {
       let x = self.expectation(description: "connection3")
+      var total = 0
       let z = ZooKeeper()
       do {
         try z.connect { connection in
           XCTAssertEqual(connection, ZooKeeper.ConnectionState.CONNECTED)
-          x.fulfill()
+          do {
+            try z.watch(self.path) { event in
+              total += 1
+              print("* * * * * * * *                                                            * * * * * * * * ")
+              print("* * * * * * * *                 DETECTED #\(total): \(event)               * * * * * * * * ")
+              print("* * * * * * * *                                                            * * * * * * * * ")
+              if total == 3 {
+                x.fulfill()
+              }//end if
+            }//end watch
+          }catch(let err) {
+            XCTFail("watch Fault: \(err)")
+          }
         }//end zooKeeper
       }catch(let err) {
-        XCTFail("Fault: \(err)")
-      }
-      self.waitForExpectations(timeout: 30) { err in
-        if err != nil {
-          XCTFail("time out \(err)")
-        }//end if
-      }//end self
-      let y = self.expectation(description: "watcher")
-      do {
-        var total = 0
-        try z.watch(path) { event in
-          total += 1
-          print("* * * * * * * *                                                            * * * * * * * * ")
-          print("* * * * * * * *                 DETECTED #\(total): \(event)               * * * * * * * * ")
-          print("* * * * * * * *                                                            * * * * * * * * ")
-          if total > 3 {
-            y.fulfill()
-          }//end if
-        }//end watch
-      }catch(let err) {
-        XCTFail("watch Fault: \(err)")
+        XCTFail("connection ault: \(err)")
       }
       self.waitForExpectations(timeout: 30) { err in
         if err != nil {

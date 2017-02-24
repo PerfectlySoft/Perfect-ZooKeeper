@@ -202,7 +202,6 @@ public class ZooKeeper {
 
     // deposit the structure to the pointer mananger and get the pointer
     let context = Manager.push(mutable: watcher)
-    print("* * * * * * * *                     context: \(context)                                       * * * * * * * * ")
 
     let watchForData = eventType == .BOTH || eventType == .DATA
     let watchForKids = eventType == .BOTH || eventType == .CHILDREN

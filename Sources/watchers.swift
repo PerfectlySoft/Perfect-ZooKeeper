@@ -68,7 +68,6 @@ let globalDefaultWatcher: watcher_fn = { zooHandle, watcherType, state, watchPat
 }//end defaultWatcher
 
 let globalNodeWatcher: watcher_fn = { zooHandle, watcherType, state, watchPath, context in
-  print("* * * * * * * *                    message received                                        * * * * * * * * ")
   // get the callback function pointer
   guard let ptr = context else {
     return
