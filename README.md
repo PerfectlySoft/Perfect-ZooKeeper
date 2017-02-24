@@ -41,20 +41,15 @@
 
 
 
-This project imports a native C client library from ZooKeeper ⚠️(for Ubuntu Linux Version only)⚠️.
+This project implements a Swift library of ZooKeeper
 
 This package builds with Swift Package Manager and is part of the [Perfect](https://github.com/PerfectlySoft/Perfect) project.
 
 Files in this repository are part of the requirements for Swift Package Manager support and should not need to be manually cloned.
 
-## Note
+## Release Note
 
-To support multi-threading, an Xlinker may be required:
-
-```
-$ swift build -Xlinker -dthreaded
-$ swift test -Xlinker -dthreaded
-```
+This project can only be built on ⚠️ Ubuntu 16.04 ⚠️ . Mac OS X doesn't support it.
 
 ## Issues
 
@@ -66,17 +61,3 @@ A comprehensive list of open issues can be found at [http://jira.perfect.org:808
 
 ## Further Information
 For more information on the Perfect project, please visit [perfect.org](http://perfect.org).
-ZkAccept.h
-ZkBase.h
-ZkClient.h
-ZkConnection.h
-ZkDistributedLock.h
-ZkEventThread.h
--- ZkException.h
-ZkLeader.h
--- ZkLock.h
-ZkNodeConn.h
-ZkRequest.h
-ZkSession.h
-ZkThread.h
-ZkWatcher.h

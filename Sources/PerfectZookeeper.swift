@@ -440,7 +440,7 @@ public class ZooKeeper {
   ///   - type: NodeType, i.e., persistent, ephemeral, sequential, or leadership, which means ephemeral + sequential. Default is .PERSISTENT
   ///   - acl: ACLTemplate, i.e., open, read or creator. Default is .OPEN
   /// - returns:
-  ///   a string array with each element as a child
+  ///   a sequential number in form of a string, if avaialbe
   /// - throws:
   ///   Exception
   @discardableResult
@@ -467,7 +467,8 @@ public class ZooKeeper {
     default: aclTemp = ZOO_CREATOR_ALL_ACL
     }//end switch
 
-    let sz = Int(strlen(path) * 2)
+    let len = Int(strlen(path))
+    let sz = len * 2
     let buf = UnsafeMutablePointer<CChar>.allocate(capacity: sz)
     memset(buf, 0, sz)
 
@@ -478,8 +479,13 @@ public class ZooKeeper {
       throw Exception(rawValue: r)!
     }//end guard
 
-    let retPath = String(cString: buf)
+    var retPath = ""
+
+    if strlen(buf) > UInt(len) {
+      retPath = String(cString: buf.advanced(by: len))
+    }
     buf.deallocate(capacity: sz)
+
     return retPath
   }//end make
 

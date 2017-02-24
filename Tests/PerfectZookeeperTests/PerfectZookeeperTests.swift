@@ -114,17 +114,14 @@ class PerfectZooKeeperTests: XCTestCase {
         let pl = "\(path)/leadership"
         let rpp = try z.make(pp, value: "blah blah blah")
         print(rpp)
-        XCTAssertEqual(rpp, pp)
         try z.remove(pp)
         let _ = try z.make(pe, value: "will fade away", type: .EPHEMERAL)
         let spp = try z.make(ps, type: .SEQUENTIAL)
-        print(spp)
-        XCTAssertGreaterThan(spp.utf8.count, ps.utf8.count)
-        try z.remove(spp)
+        print("\(ps) + \(spp)")
+        try z.remove(ps + spp)
         let lpp = try z.make(pl, type: .LEADERSHIP)
-        print(lpp)
-        try z.remove(lpp)
-        XCTAssertGreaterThan(lpp.utf8.count, ps.utf8.count)
+        print("\(pl) + \(lpp)")
+        try z.remove(pl + lpp)
       }catch(let err) {
         XCTFail("make / remove fault: \(err)")
       }
