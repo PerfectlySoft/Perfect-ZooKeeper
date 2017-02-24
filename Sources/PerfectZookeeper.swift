@@ -145,7 +145,7 @@ public class ZooKeeper {
 
   /// connect to hosts
   /// - parameters:
-  ///   - to: hosts, could be mutiple servers such as "server1:2181;server2:2181;server3:2181"
+  ///   - to: hosts, could be mutiple servers such as "server1:2181,server2:2181,server3:2181"
   ///   - completion: connection callback.
   /// - throws:
   ///   Exception

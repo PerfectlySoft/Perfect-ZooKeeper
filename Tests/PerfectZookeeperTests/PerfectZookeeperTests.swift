@@ -39,7 +39,7 @@ class PerfectZooKeeperTests: XCTestCase {
       let now = time(nil)
       do {
         print("********** SYNC WRITE / READ **********")
-        let s = try z.save(path, data: "hello, configuration \(now)")
+        let s = try z.save(path, data: "你好，现在时间是 \(now)")
         print("saving result: ")
         print(s)
         let (data, stat) = try z.load(path)
@@ -55,7 +55,7 @@ class PerfectZooKeeperTests: XCTestCase {
       let writeTimer = self.expectation(description: "writing")
       print (" % % % % % % %       ASYNC WRITE  % % % % % % %")
 
-      let written = "bonjour, conf \(now)"
+      let written = "异步读写时间戳： \(now)"
       do {
         try z.save(path, data: written) { err, stat in
           guard err == .ZOK else {
@@ -144,7 +144,7 @@ class PerfectZooKeeperTests: XCTestCase {
             do {
               sleep(1)
               let now = time(nil)
-              let _ = try z.save(self.path, data: "write to configuration \(now)")
+              let _ = try z.save(self.path, data: "🇨🇳🇨🇦异步写入监控测试： \(now)")
               print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>  \(i)  written >>>>>>>>>>>>>>>>>>>>>>>>>>> ")
             }catch (let saveErr) {
               XCTFail("write fault: \(saveErr)")
