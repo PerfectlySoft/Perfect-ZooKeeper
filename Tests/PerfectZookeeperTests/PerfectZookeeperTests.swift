@@ -3,8 +3,11 @@ import XCTest
 import Foundation
 
 class PerfectZooKeeperTests: XCTestCase {
+
+  let path = "/zookeeper/quota/perfect"
+
     func testExample() {
-      let x = self.expectation(description: "connection")
+      let x = self.expectation(description: "connection1")
       let z = ZooKeeper()
       print("???????????  keeper start   ??????????????")
       do {
@@ -33,7 +36,6 @@ class PerfectZooKeeperTests: XCTestCase {
         XCTFail("Exists Fault: \(err)")
       }//end do
 
-      let path = "/zookeeper/quota/perfect"
       let now = time(nil)
       do {
         print("********** SYNC WRITE / READ **********")
@@ -54,18 +56,22 @@ class PerfectZooKeeperTests: XCTestCase {
       print (" % % % % % % %       ASYNC WRITE  % % % % % % %")
 
       let written = "bonjour, conf \(now)"
-      z.save(path, data: written) { err, stat in
-        guard err == .ZOK else {
-          XCTFail("ASYNC WRITING FAULT: \(err)")
-          return
-        }//end guard
-        guard let st = stat else {
-          XCTFail("ASYNC WRITING RETURN NULL")
-          return
-        }
-        print(st)
-        writeTimer.fulfill()
-      }//end save
+      do {
+        try z.save(path, data: written) { err, stat in
+          guard err == .ZOK else {
+            XCTFail("ASYNC WRITING FAULT: \(err)")
+            return
+          }//end guard
+          guard let st = stat else {
+            XCTFail("ASYNC WRITING RETURN NULL")
+            return
+          }
+          print(st)
+          writeTimer.fulfill()
+        }//end save
+      }catch(let err) {
+        XCTFail("async save fault: \(err)")
+      }
 
       self.waitForExpectations(timeout: 30) { err in
         if err != nil {
@@ -76,20 +82,24 @@ class PerfectZooKeeperTests: XCTestCase {
       print (" % % % % % % %       ASYNC READ  % % % % % % %")
 
       let readerTimer = self.expectation(description: "reading")
+      do {
+        try z.load(path) { err, value, stat in
+          guard err == .ZOK else {
+            XCTFail("ASYNC READING FAULT: \(err)")
+            return
+          }//end guard
+          XCTAssertEqual(written, value)
+          guard let st = stat else {
+            XCTFail("ASYNC READING unexpected stat")
+            return
+          }//end guard
+          print(st)
+          readerTimer.fulfill()
+        }//end load
+      }catch(let err) {
+        XCTFail("async load fault: \(err)")
+      }
 
-      z.load(path) { err, value, stat in
-        guard err == .ZOK else {
-          XCTFail("ASYNC READING FAULT: \(err)")
-          return
-        }//end guard
-        XCTAssertEqual(written, value)
-        guard let st = stat else {
-          XCTFail("ASYNC READING unexpected stat")
-          return
-        }//end guard
-        print(st)
-        readerTimer.fulfill()
-      }//end load
       self.waitForExpectations(timeout: 30) { err in
         if err != nil {
           XCTFail("reading time out \(err)")
@@ -120,14 +130,80 @@ class PerfectZooKeeperTests: XCTestCase {
     }
 
     func testGlobal() {
-      ZooKeeper.debug()
+      ZooKeeper.debug(.ERROR)
       ZooKeeper.log()
     }
 
+    func testUpdate() {
+      let x = self.expectation(description: "connection2")
+      let z = ZooKeeper()
+      do {
+        try z.connect { connection in
+          XCTAssertEqual(connection, ZooKeeper.ConnectionState.CONNECTED)
+          x.fulfill()
+        }//end zooKeeper
+      }catch(let err) {
+        XCTFail("Fault: \(err)")
+      }
+      self.waitForExpectations(timeout: 30) { err in
+        if err != nil {
+          XCTFail("time out \(err)")
+        }//end if
+      }//end self
+      for _ in 0 ... 5 {
+        do {
+          sleep(1)
+          let now = time(nil)
+          let _ = try z.save(path, data: "write to configuration \(now)")
+        }catch (let err) {
+          XCTFail("write fault: \(err)")
+        }
+      }
+    }
+
+    func testWatch() {
+      let x = self.expectation(description: "connection3")
+      let z = ZooKeeper()
+      do {
+        try z.connect { connection in
+          XCTAssertEqual(connection, ZooKeeper.ConnectionState.CONNECTED)
+          x.fulfill()
+        }//end zooKeeper
+      }catch(let err) {
+        XCTFail("Fault: \(err)")
+      }
+      self.waitForExpectations(timeout: 30) { err in
+        if err != nil {
+          XCTFail("time out \(err)")
+        }//end if
+      }//end self
+      let y = self.expectation(description: "watcher")
+      do {
+        var total = 0
+        try z.watch(path) { event in
+          total += 1
+          print("* * * * * * * *                                                            * * * * * * * * ")
+          print("* * * * * * * *                 DETECTED #\(total): \(event)               * * * * * * * * ")
+          print("* * * * * * * *                                                            * * * * * * * * ")
+          if total > 3 {
+            y.fulfill()
+          }//end if
+        }//end watch
+      }catch(let err) {
+        XCTFail("watch Fault: \(err)")
+      }
+      self.waitForExpectations(timeout: 30) { err in
+        if err != nil {
+          XCTFail("watcher time out \(err)")
+        }//end if
+      }//end self
+    }
     static var allTests : [(String, (PerfectZooKeeperTests) -> () throws -> Void)] {
         return [
             ("testExample", testExample),
-            ("testGlobal", testGlobal)
+            ("testGlobal", testGlobal),
+            ("testUpdate", testUpdate),
+            ("testWatch", testWatch)
         ]
     }
 }

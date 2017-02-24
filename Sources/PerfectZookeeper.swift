@@ -30,6 +30,9 @@ public typealias StatusCallback = (ZooKeeper.Exception, Stat?) -> Void
 /// data call back for zoo_get async version
 public typealias DataCallback =  (ZooKeeper.Exception, String, Stat?) -> Void
 
+/// watch call backs
+public typealias WatchCallback = (ZooKeeper.Event) -> Void
+
 /// ZooKeeper: a light weight swift class wrapper for zoo keeper.
 public class ZooKeeper {
 
@@ -107,6 +110,10 @@ public class ZooKeeper {
   case DATA, CHILDREN, BOTH
   }//end WatchType
 
+  public enum Event {
+  case CONNECTED, DISCONNECTED, EXPIRED, CREATED, DELETED, DATA_CHANGED, CHILD_CHANGED, UNKNOWN, FAULT
+  }
+
   /// change event callback, default is `do nothing`
   public var onChange: (EventType)->Void = { _ in  }
 
@@ -166,6 +173,53 @@ public class ZooKeeper {
     if handle != nil { zookeeper_close(handle!) }
   }//end destruction
 
+  /// a watcher structure for passing context to C api.
+  public struct Watcher {
+    public var path = ""
+    public var eventType = ZooKeeper.EventType.BOTH
+    public var renew = true
+    public var api: watcher_fn = globalNodeWatcher
+    public var onChange: WatchCallback = { _ in }
+  }//end ZooWatcher
+
+  /// set a watcher on a specific node
+  /// - parameters:
+  ///   - path: String, the absolute full path of the node to watch
+  ///   - eventType: watch for .DATA or .CHILDREN, or .BOTH
+  ///   - renew: watch the event for once or for ever, false for once and true for ever.
+  ///   - onChange: WatchCallback, callback once something changed
+  /// - throws:
+  ///   Exception
+  public func watch(_ path: String, eventType: EventType = .BOTH, renew: Bool = true, onChange: @escaping WatchCallback) throws {
+
+    // validate the handle first
+    guard let h = handle else {
+      throw Exception.ZCONNECTIONLOSS
+    }//end guard
+
+    // turn all parameters into a structure
+    let watcher = ZooKeeper.Watcher(path: path, eventType: eventType, renew: renew, api:globalNodeWatcher, onChange: onChange)
+
+    // deposit the structure to the pointer mananger and get the pointer
+    let context = Manager.push(mutable: watcher)
+    print("* * * * * * * *                     context: \(context)                                       * * * * * * * * ")
+
+    let watchForData = eventType == .BOTH || eventType == .DATA
+    let watchForKids = eventType == .BOTH || eventType == .CHILDREN
+    if watchForData {
+      let r = zoo_awget(h, path, globalNodeWatcher, context,  { _, _, _, _, _ in }, nil)
+      guard r == Exception.ZOK.rawValue else {
+        throw Exception(rawValue: r)!
+      }//end r
+    }//end if
+    if watchForKids {
+      let r = zoo_awget_children(h, path, globalNodeWatcher, context, { _, _, _ in }, nil)
+      guard r == Exception.ZOK.rawValue else {
+        throw Exception(rawValue: r)!
+      }//end r
+    }//end if
+  }//end watch
+
   /// load data from a node, synchronously
   /// - parameters:
   ///   - path: String, the absolute full path of the node to access
@@ -205,19 +259,20 @@ public class ZooKeeper {
   /// - parameters:
   ///   - path: String, the absolute full path of the node to access
   ///   - completion: DataCallback, callback once data ready
-  public func load(_ path: String, completion: @escaping DataCallback ) {
+  /// - throws:
+  ///   Exception
+  public func load(_ path: String, completion: @escaping DataCallback ) throws {
 
     // validate the handle first
     guard let h = handle else {
-      completion (Exception.ZCONNECTIONLOSS, "", Stat())
-      return
+      throw Exception.ZCONNECTIONLOSS
     }//end guard
 
     // deposit the function pointer to the pointer mananger
     let key = Manager.push(immutable: completion)
 
     // asynchronously read data from server
-    zoo_aget(h, path, 0, { rc, value, len, pStat, data  in
+    let r = zoo_aget(h, path, 0, { rc, value, len, pStat, data  in
 
       // get the callback function pointer
       guard let ptr = data else {
@@ -248,6 +303,10 @@ public class ZooKeeper {
         callback(err, "", st)
       }//end if
     }, key)
+
+    guard r == Exception.ZOK.rawValue else {
+      throw Exception(rawValue: r)!
+    }//end r
   }//end load
 
   /// save data to path, synchronously
@@ -278,19 +337,20 @@ public class ZooKeeper {
   ///   - data: String, the data to save
   ///   - version: version of data, default is -1 which indicates ignoring the version info
   ///   - completion: StatusCallback once done.
-  public func save(_ path: String, data: String, version: Int = -1, completion: @escaping StatusCallback ) {
+  /// - throws:
+  ///   Exception
+  public func save(_ path: String, data: String, version: Int = -1, completion: @escaping StatusCallback ) throws {
 
     // validate the connection
     guard let h = handle else {
-      completion (Exception.ZCONNECTIONLOSS, Stat())
-      return
+      throw Exception.ZCONNECTIONLOSS
     }//end guard
 
     // save the callback function pointer to pool
     let key = Manager.push(immutable: completion)
 
     // deposit data into node
-    zoo_aset(h, path, data, Int32(strlen(data)), Int32(version), { rc, pStat, data in
+    let r = zoo_aset(h, path, data, Int32(strlen(data)), Int32(version), { rc, pStat, data in
 
       // load the callback function pointer from the pool
       guard let ptr = data else {
@@ -304,6 +364,9 @@ public class ZooKeeper {
       }//end if
       callback (err, st)
     }, key)
+    guard r == Exception.ZOK.rawValue else {
+      throw Exception(rawValue: r)!
+    }//end guard
   }//end save
 
   /// check the node existence
@@ -443,7 +506,4 @@ public class ZooKeeper {
     }//end guard
   }//end remove
 
-  public func watch(_ path: String, eventType: EventType = .BOTH, onChange: @escaping (Exception, EventType)) {
-
-  }
 }//end class
