@@ -126,7 +126,7 @@ try z.connect("servername:2181") { connect in
 }
 ```
 
-⚠️ NOTE ⚠️ , you may also connect to a cluster of host by replacing the above connection string into a string of multiple hosts in such an expression: "server1:2181,server2:2181,server3:2181", but this may be subject to the ZooKeeper version that you are connecting with. For more information of ZooKeeper connection string, see [ZooKeeper Programmer's Guide](https://zookeeper.apache.org/doc/trunk/zookeeperProgrammers.html)
+⚠️ NOTE ⚠️ , you may also connect to a cluster of host by replacing the above connection string into a string of multiple hosts in such an expression: `"server1:2181,server2:2181,server3:2181"`, but this may be subject to the ZooKeeper version that you are connecting with. For more information of ZooKeeper connection string, see [ZooKeeper Programmer's Guide](https://zookeeper.apache.org/doc/trunk/zookeeperProgrammers.html)
 
 
 ### Existence of a ZNode

@@ -126,7 +126,7 @@ try z.connect("servername:2181") { connect in
 }
 ```
 
-⚠️ 注意 ⚠️ 您还可以同时连接多个服务器构成的集群， 具体方法是将连接字符串替换为类似 "server1:2181,server2:2181,server3:2181" 的表达式，但是这可能收到您具体的集群版本的限制，详见 [ZooKeeper 编程指南（英文版）](https://zookeeper.apache.org/doc/trunk/zookeeperProgrammers.html)
+⚠️ 注意 ⚠️ 您还可以同时连接多个服务器构成的集群， 具体方法是将连接字符串替换为类似 `"server1:2181,server2:2181,server3:2181"` 的表达式，但是这可能受到您具体的集群版本的限制，详见 [ZooKeeper 编程指南（英文版）](https://zookeeper.apache.org/doc/trunk/zookeeperProgrammers.html)
 
 
 ### 判断节点是否存在
