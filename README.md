@@ -151,7 +151,8 @@ Method `children()` may list all available direct sub nodes under the objective 
 ``` swift
 let kids = try z.children("/path/to")
 // if success, it will list all sub nodes under /path/to in an array.
-// for example, if there is /path/to/a and /path/to/b, then the result is probably ["a", "b"]
+// for example, if there is /path/to/a and /path/to/b,
+// then the result is probably ["a", "b"]
 print(kids)
 ```
 
@@ -266,7 +267,8 @@ The purpose of leadership node is to select a leadership server among all candid
 ``` swift
 let path = try z.make("/path/to/myApplication", type: .LEADERSHIP)
 print(path)
-// if success, the path will be something like `/path/to/myApplication0000000123` and will be deleted automatically once disconnected.
+// if success, the path will be something like `/path/to/myApplication0000000123`
+// and will be deleted automatically once disconnected.
 ```
 
 ### Remove a Node

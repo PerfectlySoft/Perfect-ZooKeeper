@@ -255,7 +255,8 @@ let _ = try z.make("/path/to/tempKey", value: "临时条目下的数据", type: 
 ``` swift
 let serialNum = try z.make("/path/to/myApplication", type: .SEQUENTIAL)
 print(serialNum)
-// 如果成功，序列号将会是如`0000000123`的字符串，而节点全路径会变成`/path/to/myApplication0000000123`
+// 如果成功，序列号将会是如`0000000123`的字符串，
+// 而节点全路径会变成类似`/path/to/myApplication0000000123`的结果
 ```
 
 ⚠️ 注意 ⚠️ 顺序编号节点是永久节点，这意味着如果不调用 `remove()`则节点不会被删除。
