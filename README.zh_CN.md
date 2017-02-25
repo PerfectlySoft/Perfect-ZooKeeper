@@ -197,7 +197,7 @@ try z.save("/path/to/key", data: "该条目对应的配置数据") { err, stat i
 
 #### 同步读取节点数据
 
-调用 `load("/path/to")` 可获取节点键值对应的数据，结果是返回一个双元组 (Value: String, Stat)，第一个元素是取得的字符串值，第二个元素是节点状态
+调用 `load("/path/to")` 可获取节点键值对应的数据，结果是返回一个双元组 (value: String, stat: Stat)，第一个元素value是取得的字符串值，第二个元素stat是节点状态
 
 ``` swift
 let (value, stat) = try z.load("/path/to")
@@ -230,7 +230,7 @@ try z.load(path) { err, value, stat in
 - type: NodeType, 节点类型，允许值为.PERSISTENT（永久节点）、.EPHEMERAL（临时节点）、.SEQUENTIAL（顺序编号节点）或者.LEADERSHIP（可选举节点——带有顺序编号的临时节点）。默认情况下为永久节点。
 - acl: ACLTemplate, 基本的访问控制列表模板，可以是.OPEN（开放性节点）、.READ（只读节点）或.CREATOR（私有节点）。默认为开放性节点，即任何人都可以读取。
 
-⚠️ 注意 ⚠️ 只有在创建顺序编号节点或者可选举节点时，该函数会返回一个字符串类型的顺序编号（通常为10个字节的编号），其他类型的节点返回值为空，内容可忽略。
+⚠️ 注意 ⚠️ 返回值为新建节点的绝对路径全称。如果输入节点类型为顺序编号节点或者可选举节点，则返回值为目标节点名称尾随一个顺序编号（通常为10个字节的编号），否则为计划创建节点名称。
 
 #### 创建永久节点
 
@@ -316,6 +316,16 @@ try z.watch("/path/to/myCheese") { event in
   }
 }//end watch
 ```
+
+### 集群选举
+
+Perfect ZooKeeper 提供了一个用于集群所有例程通过选举来识别主节点方便方法`elect()`，参考如下：
+
+``` swift
+let (me, leader, candidates) = try z.elect("/path/to")
+```
+
+如果不出意外，`elect()` 函数返回值将是一个三元组：`(me: Int, leader: Int, candidates: [Int])`, 意味着包括当前例程在内的所有例程都会各自得到一个序列号并保存到`candidates`数组内。而返回值`me`代表着当前例程的序列号，`leader`代表着当选例程的序列号。只要`me == leader`，则意味着当前例程已经赢得选举，用户应当以主节点的方式将当前例程升级控制权。
 
 ## 问题报告、内容贡献和客户支持
 

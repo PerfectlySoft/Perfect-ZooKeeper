@@ -114,14 +114,16 @@ class PerfectZooKeeperTests: XCTestCase {
         let pl = "\(path)/leadership"
         let rpp = try z.make(pp, value: "blah blah blah")
         print(rpp)
+        XCTAssertEqual(rpp, pp)
         try z.remove(pp)
-        let _ = try z.make(pe, value: "will fade away", type: .EPHEMERAL)
+        let epp = try z.make(pe, value: "will fade away", type: .EPHEMERAL)
+        XCTAssertEqual(epp, pe)
         let spp = try z.make(ps, type: .SEQUENTIAL)
-        print("\(ps) + \(spp)")
-        try z.remove(ps + spp)
+        print(spp)
+        try z.remove(spp)
         let lpp = try z.make(pl, type: .LEADERSHIP)
-        print("\(pl) + \(lpp)")
-        try z.remove(pl + lpp)
+        print(lpp)
+        try z.remove(lpp)
       }catch(let err) {
         XCTFail("make / remove fault: \(err)")
       }
@@ -191,12 +193,43 @@ class PerfectZooKeeperTests: XCTestCase {
         }//end if
       }//end self
     }
+
+    func testElection() {
+      let x = self.expectation(description: "connection4")
+      let z = ZooKeeper()
+      do {
+        try z.connect { connection in
+          XCTAssertEqual(connection, ZooKeeper.ConnectionState.CONNECTED)
+          x.fulfill()
+        }//end zooKeeper
+      }catch(let err) {
+        XCTFail("connection ault: \(err)")
+      }
+      self.waitForExpectations(timeout: 30) { err in
+        if err != nil {
+          XCTFail("election time out \(err)")
+        }//end if
+      }//end self
+      print("|||||||||  ||||||||  election:                    |||||||||")
+      do {
+        let epath = "\(path)/election"
+        for _ in 0...10 {
+          let pl = try z.make(epath, type: .LEADERSHIP)
+          print(pl)
+        }
+        let r = try z.elect(epath)
+        print(r)
+      }catch(let err) {
+        XCTFail("election fault \(err)")
+      }//end do
+    }
     static var allTests : [(String, (PerfectZooKeeperTests) -> () throws -> Void)] {
         return [
             ("testExample", testExample),
             ("testGlobal", testGlobal),
             ("testUpdate", testUpdate),
-            ("testWatch", testWatch)
+            ("testWatch", testWatch),
+            ("testElection", testElection)
         ]
     }
 }

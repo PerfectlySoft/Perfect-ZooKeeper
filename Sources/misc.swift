@@ -17,6 +17,11 @@
 //===----------------------------------------------------------------------===//
 //
 import czookeeper
+#if os(Linux)
+import SwiftGlibc
+#else
+import Darwin
+#endif
 
 extension String {
   /// parse the path and extract the parent path
@@ -41,4 +46,37 @@ extension String {
       return nodes.reduce("") { $0 + "/" + $1 }
     }//end if
   }//end func
+
+  /// remove the prefix substring and return the remain (suffix) part of a string
+  /// - parameters:
+  ///   - prefix: String, the substring to remove
+  /// - returns:
+  ///   the remain substring (suffix), if available, or empty
+  @discardableResult
+  public func deduct(_ prefix: String) -> String? {
+
+    let aLen = strlen(self)
+    let bLen = strlen(prefix)
+    if aLen < bLen {
+      return nil
+    }//end if
+
+    let cmp = memcmp(self, prefix, Int(bLen))
+    // check if the string has such a prefix, *NOTE* hasPrefix() is only avaible in CoreFoundation
+    if cmp != 0 {
+      return nil
+    }//end if
+
+    // duplicate the current string
+    let dup = strdup(self)!
+
+    // calculate the suffix
+    let ret = String(cString: dup.advanced(by: Int(strlen(prefix))))
+
+    // release duplication
+    free(dup)
+
+    // return the suffix
+    return ret
+  }//end deduct
 }//end class

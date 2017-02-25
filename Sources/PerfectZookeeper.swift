@@ -78,7 +78,8 @@ public class ZooKeeper {
     ZNOTHING = -117, /*!< (not error) no server responses to process */
     ZSESSIONMOVED = -118, /*!<session moved to another server, so operation is ignored */
     // customize: raised when too many bytes to save.
-    OVERFLOW = 1
+    OVERFLOW = 1,
+    UNKNOWN = 2
   }//end enum
 
   /// connection state to the ZooKeeper server
@@ -227,7 +228,7 @@ public class ZooKeeper {
   /// - throws:
   ///   Exception
   @discardableResult
-  public func load(_ path: String) throws -> (String, Stat) {
+  public func load(_ path: String) throws -> (value: String, stat: Stat) {
 
     // check the handle first
     guard let h = handle else {
@@ -479,11 +480,7 @@ public class ZooKeeper {
       throw Exception(rawValue: r)!
     }//end guard
 
-    var retPath = ""
-
-    if strlen(buf) > UInt(len) {
-      retPath = String(cString: buf.advanced(by: len))
-    }
+    let retPath = String(cString: buf)
     buf.deallocate(capacity: sz)
 
     return retPath
@@ -511,4 +508,35 @@ public class ZooKeeper {
     }//end guard
   }//end remove
 
+  public func setACL(_ path: String, version: Int32 = -1, acl: ACL_vector) throws {
+    // validate the connection
+    guard let h = handle else {
+      throw Exception.ZCONNECTIONLOSS
+    }//end guard
+
+    var pacl = acl
+
+    let r = zoo_set_acl(h, path, version, &pacl)
+
+    guard r == Exception.ZOK.rawValue else {
+      throw Exception(rawValue: r)!
+    }//end guard
+  }//end acl
+
+  /// make a election and figure out who will be the leader in this cluster
+  /// - parameters:
+  ///   - path: the absolute full path of the objective node
+  /// - returns:
+  ///   (me: Int, leader: Int, candidates: [Int]) election result
+  @discardableResult
+  public func elect(_ path: String) throws -> (me: Int, leader: Int, candidates: [Int]) {
+    let this = try make(path, type: .LEADERSHIP)
+    let parent = path.parentPath()
+    let node = path.deduct(parent + "/") ?? "/"
+    let all = try children(parent)
+    let me = Int(this.deduct(path) ?? "\(Int.max)") ?? Int.max
+    let candidates = all.map { $0.deduct(node) }.filter { $0 != nil }.map { $0 ?? "\(Int.max)"}.map { Int($0) ?? Int.max }
+    let leader = candidates.min { $0.0 < $0.1 }
+    return (me, leader ?? me, candidates)
+  }//end elect
 }//end class

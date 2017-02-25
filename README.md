@@ -196,7 +196,7 @@ Similar to `save()`, the ZooKeeper `load()` also has both synchronous version an
 
 #### Load Data Synchronously
 
-To load data from a ZNode synchronously, simply call `load("/path/to")`, and it will return a tuple of (Value: String, Stat):
+To load data from a ZNode synchronously, simply call `load("/path/to")`, and it will return a tuple of `(value: String, stat: Stat)`, which stands for data value and status of the node:
 
 ``` swift
 let (value, stat) = try z.load("/path/to")
@@ -229,7 +229,7 @@ Function `func make(_ path: String, value: String = "", type: NodeType = .PERSIS
 - type: NodeType, i.e., .PERSISTENT, .EPHEMERAL, .SEQUENTIAL, or .LEADERSHIP, which means ephemeral + sequential. Default type is .PERSISTENT
 - acl: ACLTemplate, basic ACL template to apply in this incoming node, i.e., .OPEN, .READ or .CREATOR. Default is .OPEN, which means nothing to restrict
 
-⚠️ Note ⚠️ The return value will be a string formed serial number only if the node type is .SEQUENTIAL or .LEADERSHIP, otherwise it should be empty and ignored.
+⚠️ Note ⚠️ The return value will be the newly created pat, i.e., the same one as input if type is .PERSISTENT or .EPHEMERAL, and will be appended with a serial number only if the node type is .SEQUENTIAL or .LEADERSHIP.
 
 #### Make a Persistent Node
 
@@ -249,12 +249,12 @@ let _ = try z.make("/path/to/tempKey", value: "data for this temporary key", typ
 
 #### Make a Sequential Node
 
-A Sequential ZNode means if you want to create a `/path/to/key` node, it will return a `/path/to/key0123456789`, i.e., a 10 digit number will be added to the node you named, and `make()` method will return this newly & automatically generated incremental serial number, in a form of string:
+A Sequential ZNode means if you want to create a `/path/to/key` node, it will return a `/path/to/key0123456789`, i.e., a 10 digit number will be added to the node you named.
 
 ``` swift
-let serialNum = try z.make("/path/to/myApplication", type: .SEQUENTIAL)
-print(serialNum)
-// if success, the serialNum will be something like `0000000123` and the node will be `/path/to/myApplication0000000123`
+let path = try z.make("/path/to/myApplication", type: .SEQUENTIAL)
+print(path)
+// if success, the path will be something like `/path/to/myApplication0000000123`
 ```
 
 ⚠️ Note ⚠️ Sequential node is persistent and can be removed only by calling `remove()` method explicitly.
@@ -264,12 +264,9 @@ print(serialNum)
 The purpose of leadership node is to select a leadership server among all candidates. Similar to .SEQUENTIAL, the leadership node is also a temporary node, which help all clustered backups to determine who shall be the leader among the cluster by checking whose serial number is the minimal one, which means who is the first available.
 
 ``` swift
-let serialNum = try z.make("/path/to/myApplication", type: .LEADERSHIP)
-print(serialNum)
-// if success, the serialNum will be something like `0000000123` and the node will be `/path/to/myApplication0000000123`
-// then you could probably use `children()` to check if there are any engaging candidate instances in competition.
-// If the current instance get the minimal serial number, then it shall be the leader of cluster;
-// otherwise the candidates shall wait for opportunities to win the leadership.
+let path = try z.make("/path/to/myApplication", type: .LEADERSHIP)
+print(path)
+// if success, the path will be something like `/path/to/myApplication0000000123` and will be deleted automatically once disconnected.
 ```
 
 ### Remove a Node
@@ -316,6 +313,15 @@ try z.watch("/path/to/myCheese") { event in
 }//end watch
 ```
 
+### Election in a Cluster
+
+Perfect ZooKeeper provides a convenient way of choosing a leader / master from a cluster by calling method `elect()`:
+
+``` swift
+let (me, leader, candidates) = try z.elect("/path/to")
+```
+
+If success, the return value of `elect()` function is a tuple of `(me: Int, leader: Int, candidates: [Int])`, which means every candidate, include the current instance, will be included in the `candidates` array as an integer. Result `me` is the current instance's election serial number and the result of `leader` is the number represents the final leader in this election. If `me == leader`, then congratulations - the current instance of ZooKeeper just won the election. In such a case, further actions should be done to upgrade current instance into the master of cluster.
 
 ## Issues
 
