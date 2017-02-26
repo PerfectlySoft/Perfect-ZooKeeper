@@ -1,6 +1,7 @@
 import XCTest
 @testable import PerfectZooKeeper
 import Foundation
+import czookeeper
 
 class PerfectZooKeeperTests: XCTestCase {
 
@@ -203,7 +204,7 @@ class PerfectZooKeeperTests: XCTestCase {
           x.fulfill()
         }//end zooKeeper
       }catch(let err) {
-        XCTFail("connection ault: \(err)")
+        XCTFail("connection fault: \(err)")
       }
       self.waitForExpectations(timeout: 30) { err in
         if err != nil {
@@ -223,12 +224,51 @@ class PerfectZooKeeperTests: XCTestCase {
         XCTFail("election fault \(err)")
       }//end do
     }
+
+    func show(_ aclArray: ACL_vector) {
+      guard let pAcl = aclArray.data else {
+        XCTFail("ACL POINTER FAULT")
+        return
+      }
+      var i = 0
+      while (Int32(i) < aclArray.count) {
+        let cursor = pAcl.advanced(by: i)
+        let acl = cursor.pointee
+        let scheme = String(cString: acl.id.scheme)
+        let id = String(cString: acl.id.id)
+        print("id: \(id)")
+        print("scheme: \(scheme)")
+        let perm = String(format: "%8X", acl.perms)
+        print("permissions: \(perm)")
+        print(" - - - - -")
+        let pread = String(format: "%8X", ZOO_PERM_READ)
+        print("read: \(pread)")
+        let pwrite = String(format: "%8X", ZOO_PERM_WRITE)
+        print("write: \(pwrite)")
+        let pcreate = String(format: "%8X", ZOO_PERM_CREATE)
+        print("create: \(pcreate)")
+        let pdelete = String(format: "%8X", ZOO_PERM_DELETE)
+        print("delete: \(pdelete)")
+        let padmin = String(format: "%8X", ZOO_PERM_ADMIN)
+        print("admin: \(padmin)")
+        let pall = String(format: "%8X", ZOO_PERM_ALL)
+        print("all: \(pall)")
+        i += 1
+      }
+    }
+    func testACL() {
+      print("^ ^ ^ ^ ^ ^        ACL:   ^ ^ ^ ^ ^ ^ ^")
+      show(ZOO_READ_ACL_UNSAFE)
+      show(ZOO_OPEN_ACL_UNSAFE)
+      show(ZOO_CREATOR_ALL_ACL)
+    }
     static var allTests : [(String, (PerfectZooKeeperTests) -> () throws -> Void)] {
         return [
             ("testExample", testExample),
             ("testGlobal", testGlobal),
             ("testUpdate", testUpdate),
             ("testWatch", testWatch),
+            ("testACL", testACL),
             ("testElection", testElection)
         ]
     }
