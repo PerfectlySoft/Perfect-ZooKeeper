@@ -3,7 +3,7 @@ import XCTest
 import Foundation
 import czookeeper
 
-class PerfectZooKeeperTests: XCTestCase {
+class PerfectZookeeperTests: XCTestCase {
 
   let path = "/zookeeper/quota/perfect"
 
@@ -286,7 +286,7 @@ class PerfectZooKeeperTests: XCTestCase {
         XCTFail("acl fault: \(err)")
       }
     }
-    static var allTests : [(String, (PerfectZooKeeperTests) -> () throws -> Void)] {
+    static var allTests : [(String, (PerfectZookeeperTests) -> () throws -> Void)] {
         return [
             ("testExample", testExample),
             ("testGlobal", testGlobal),
