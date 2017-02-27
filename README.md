@@ -325,6 +325,75 @@ let (me, leader, candidates) = try z.elect("/path/to")
 
 If success, the return value of `elect()` function is a tuple of `(me: Int, leader: Int, candidates: [Int])`, which means every candidate, include the current instance, will be included in the `candidates` array as an integer. Result `me` is the current instance's election serial number and the result of `leader` is the number represents the final leader in this election. If `me == leader`, then congratulations - the current instance of ZooKeeper just won the election. In such a case, further actions should be done to upgrade current instance into the master of cluster.
 
+### ACL Operations
+
+ACL, the access control list, can be manipulated in ZooKeeper API by core data structure `ACL_vector`, i.e., a C based pointer array. Content of such a structure could be checked by similar operations as below:
+
+``` swift
+func show(_ aclArray: ACL_vector) {
+  guard let pAcl = aclArray.data else {
+    // the array doesn't contain any valid data
+    return
+  }
+  var i = 0
+  while (Int32(i) < aclArray.count) {
+    let cursor = pAcl.advanced(by: i)
+    let acl = cursor.pointee
+    let scheme = String(cString: acl.id.scheme)
+    let id = String(cString: acl.id.id)
+    // id is subject to scheme
+    // if scheme is "world", then id shall be "anyone",
+    // scheme "auth" doesn't use any id.
+    // scheme "ip" uses host ip as id, such as "1.2.3.4/5"
+    // scheme "x509" uses client X500 principal as id.
+    // scheme "digest" use name:password to generate MD5 as id:
+    // `username:base64 encoded SHA1 password digest.`
+    print("id: \(id)")
+    print("scheme: \(scheme)")
+    // permission is a combination of :
+    // ZOO_PERM_READ | ZOO_PERM_WRITE | ZOO_PERM_CREATE
+    // ZOO_PERM_DELETE | ZOO_PERM_ADMIN | ZOO_PERM_ALL
+    let perm = String(format: "%8X", acl.perms)
+    print("permissions: \(perm)")
+    i += 1
+  }
+}
+```
+
+⚠️ CAUTION ⚠️ To manipulate ACL_vector with permission options, please make sure to import the C ZooKeeper library:
+
+``` swift
+import czookeeper
+```
+
+#### Get ACL Info
+
+Method `getACL()` can retrieve ACL info from a ZNode:
+
+``` swift
+let (acl, stat) = try z.getACL("/path/to")
+```
+
+The return value is a tuple of `(acl: ACL_vector, stat: Stat)` stands for the acl info as an `ACL_vector` pointer array and status of the node.
+
+#### Set ACL Info
+
+Method `func setACL(_ path: String, version: Int32 = -1, acl: ACL_vector) throws` may save an ACL setting to a ZNode, where the version could be skipped by default and providing a valid `ACL_vector` pointer array:
+
+``` swift
+var acl = ACL_vector()
+// do some modification to acl variable
+try z.setACL("/path/to", acl:acl)
+```
+
+However, there is also another alternative form of `setACL()` by replacing the complicated `ACL_vector` to preset ACL template:
+
+``` swift
+// available templates include .OPEN, .READ and .CREATOR
+// default is .OPEN, which means nothing to restrict
+try z.setACL("/path/to", aclTemplate: .READ)
+```
+
 ## Issues
 
 We are transitioning to using JIRA for all bugs and support related issues, therefore the GitHub issues has been disabled.

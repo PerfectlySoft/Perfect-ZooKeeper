@@ -328,6 +328,75 @@ let (me, leader, candidates) = try z.elect("/path/to")
 
 如果不出意外，`elect()` 函数返回值将是一个三元组：`(me: Int, leader: Int, candidates: [Int])`, 意味着包括当前例程在内的所有例程都会各自得到一个序列号并保存到`candidates`数组内。而返回值`me`代表着当前例程的序列号，`leader`代表着当选例程的序列号。只要`me == leader`，则意味着当前例程已经赢得选举，用户应当以主节点的方式将当前例程升级控制权。
 
+### ACL 操作简介
+
+访问控制列表 ACL 是通过 ZooKeeper 核心数据结构 `ACL_vector` 完成节点安全操作的，其内容是一个C语言的指针数组。以下程序演示了该数据结构的使用方法：
+
+``` swift
+func show(_ aclArray: ACL_vector) {
+  guard let pAcl = aclArray.data else {
+    // 该指针数组不包含任何内容
+    return
+  }
+  var i = 0
+  while (Int32(i) < aclArray.count) {
+    let cursor = pAcl.advanced(by: i)
+    let acl = cursor.pointee
+    let scheme = String(cString: acl.id.scheme)
+    let id = String(cString: acl.id.id)
+    // id 是根据scheme值变化的
+    // 如果 scheme 是 "world", 则 id 应该是 "anyone",
+    // scheme "auth" 不使用id
+    // scheme "ip" 使用主机ip地址作为id，如 "1.2.3.4/5"
+    // scheme "x509" 使用 X500 principal 作为 id.
+    // scheme "digest" 使用用户名密码的 MD5 编码作为id:
+    // `username:base64 encoded SHA1 password digest.`
+    print("id: \(id)")
+    print("scheme: \(scheme)")
+    // 许可权限是下列标识位的组合
+    // ZOO_PERM_READ | ZOO_PERM_WRITE | ZOO_PERM_CREATE
+    // ZOO_PERM_DELETE | ZOO_PERM_ADMIN | ZOO_PERM_ALL
+    let perm = String(format: "%8X", acl.perms)
+    print("permissions: \(perm)")
+    i += 1
+  }
+}
+```
+
+⚠️ 请注意 ⚠️ 如果您希望针对 ACL_vector 数据结构进行许可权操作，请确定在您的源程序中导入 ZooKeeper 的C语言函数库：
+
+``` swift
+import czookeeper
+```
+
+#### 获取 ACL 信息
+
+方法 `getACL()` 能够帮助用户从节点上读取安全访问控制列表：
+
+``` swift
+let (acl, stat) = try z.getACL("/path/to")
+```
+
+返回值是双元组 `(acl: ACL_vector, stat: Stat)`，分别表示包含ACL信息的指针数组和节点当前状态。
+
+#### 设置 ACL 信息
+
+方法 `func setACL(_ path: String, version: Int32 = -1, acl: ACL_vector) throws` 可以用于写入节点的ACL信息，而版本号是可以被忽略的，并且请确保 `ACL_vector`指针数组是合法有效的：
+
+``` swift
+var acl = ACL_vector()
+// 请手工修改acl变量
+try z.setACL("/path/to", acl:acl)
+```
+
+另一种相对简单的方法，是用现成的ACL模板去替换复杂的`ACL_vector`指针数组，然后调用`setACL()`函数：
+
+``` swift
+// 有效的模板包括 .OPEN（开放）、.READ（只读）和 .CREATOR（专属）
+// 默认是 .OPEN，表示完全开放
+try z.setACL("/path/to", aclTemplate: .READ)
+```
+
 ## 问题报告、内容贡献和客户支持
 
 我们目前正在过渡到使用JIRA来处理所有源代码资源合并申请、修复漏洞以及其它有关问题。因此，GitHub 的“issues”问题报告功能已经被禁用了。

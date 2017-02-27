@@ -261,6 +261,30 @@ class PerfectZooKeeperTests: XCTestCase {
       show(ZOO_READ_ACL_UNSAFE)
       show(ZOO_OPEN_ACL_UNSAFE)
       show(ZOO_CREATOR_ALL_ACL)
+      let x = self.expectation(description: "connection5")
+      let z = ZooKeeper()
+      do {
+        try z.connect { connection in
+          XCTAssertEqual(connection, ZooKeeper.ConnectionState.CONNECTED)
+          x.fulfill()
+        }//end zooKeeper
+      }catch(let err) {
+        XCTFail("connection fault: \(err)")
+      }
+      self.waitForExpectations(timeout: 30) { err in
+        if err != nil {
+          XCTFail("election time out \(err)")
+        }//end if
+      }//end self
+      let aclpath = "\(path)/acltest"
+      do {
+        try z.make(aclpath, type: .EPHEMERAL)
+        try z.setACL(aclpath, aclTemplate: .READ)
+        let (acl, _) = try z.getACL(aclpath)
+        show(acl)
+      }catch(let err) {
+        XCTFail("acl fault: \(err)")
+      }
     }
     static var allTests : [(String, (PerfectZooKeeperTests) -> () throws -> Void)] {
         return [

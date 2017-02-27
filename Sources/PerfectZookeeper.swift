@@ -508,6 +508,13 @@ public class ZooKeeper {
     }//end guard
   }//end remove
 
+  /// set ACL (Access Control List)
+  /// - parameters:
+  ///   - path: the absolute full path of the objective node
+  ///   - version: Int32, version of this setting, default -1 means ignore
+  ///   - acl: ACL_vector, an C pointer array of control list
+  /// - throws:
+  ///   Exception
   public func setACL(_ path: String, version: Int32 = -1, acl: ACL_vector) throws {
     // validate the connection
     guard let h = handle else {
@@ -515,7 +522,7 @@ public class ZooKeeper {
     }//end guard
 
     var pacl = acl
-
+    // set the acl
     let r = zoo_set_acl(h, path, version, &pacl)
 
     guard r == Exception.ZOK.rawValue else {
@@ -523,11 +530,58 @@ public class ZooKeeper {
     }//end guard
   }//end acl
 
+  /// set ACL (Access Control List)
+  /// - parameters:
+  ///   - path: the absolute full path of the objective node
+  ///   - version: Int32, version of this setting, default -1 means ignore
+  ///   - aclTemplate: a basic ACL template
+  /// - throws:
+  ///   Exception
+  public func setACL(_ path: String, version: Int32 = -1, aclTemplate: ACLTemplate = .OPEN) throws {
+
+    var acl : ACL_vector
+    switch(aclTemplate) {
+    case .READ: acl = ZOO_READ_ACL_UNSAFE
+    case .OPEN: acl = ZOO_OPEN_ACL_UNSAFE
+    default: acl = ZOO_CREATOR_ALL_ACL
+    }//end switch
+
+    try setACL(path, version: version, acl: acl)
+  }//end acl
+
+  /// get ACL (Access Control List)
+  /// - parameters:
+  ///   - path: the absolute full path of the objective node
+  /// - returns:
+  ///   (acl: ACL_vector, stat: Stat)
+  /// - throws:
+  ///   Exception
+  @discardableResult
+  public func getACL(_ path: String) throws -> (acl: ACL_vector, stat: Stat) {
+
+    // validate the connection
+    guard let h = handle else {
+      throw Exception.ZCONNECTIONLOSS
+    }//end guard
+
+    var acl = ACL_vector()
+    var stat = Stat()
+
+    // get the acl
+    let r = zoo_get_acl(h, path, &acl, &stat)
+
+    guard r == Exception.ZOK.rawValue else {
+      throw Exception(rawValue: r)!
+    }//end guard
+    return (acl, stat)
+  }
   /// make a election and figure out who will be the leader in this cluster
   /// - parameters:
   ///   - path: the absolute full path of the objective node
   /// - returns:
   ///   (me: Int, leader: Int, candidates: [Int]) election result
+  /// - throws:
+  ///   Exception
   @discardableResult
   public func elect(_ path: String) throws -> (me: Int, leader: Int, candidates: [Int]) {
     let this = try make(path, type: .LEADERSHIP)
